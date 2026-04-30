@@ -27,7 +27,7 @@ class LossHistory():
         os.makedirs(self.log_dir)
         self.writer     = SummaryWriter(self.log_dir)
         try:
-            dummy_input     = torch.randn(2, 3, input_shape[0], input_shape[1])
+            dummy_input     = torch.randn(2, 3, input_shape[0], input_shape[1]) # BCHW
             self.writer.add_graph(model, dummy_input)
         except:
             pass
@@ -188,7 +188,7 @@ class EvalCallback():
             if not os.path.exists(os.path.join(self.map_out_path, "detection-results")):
                 os.makedirs(os.path.join(self.map_out_path, "detection-results"))
             print("Get map.")
-            for annotation_line in tqdm(self.val_lines):
+            for annotation_line in tqdm(self.val_lines,disable=True):
                 line        = annotation_line.split()
                 image_id    = os.path.basename(line[0]).split('.')[0]
                 #------------------------------#

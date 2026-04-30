@@ -11,21 +11,21 @@ class SSDDataset(Dataset):
     def __init__(self, annotation_lines, input_shape, anchors, batch_size, num_classes, train, overlap_threshold = 0.5):
         super(SSDDataset, self).__init__()
         self.annotation_lines   = annotation_lines
-        self.length             = len(self.annotation_lines)
+        self.length             = len(self.annotation_lines) # img nums
         
         self.input_shape        = input_shape
         self.anchors            = anchors
         self.num_anchors        = len(anchors)
         self.batch_size         = batch_size
         self.num_classes        = num_classes
-        self.train              = train
+        self.train              = train # 是否是训练集
         self.overlap_threshold  = overlap_threshold
 
     def __len__(self):
         return self.length
 
     def __getitem__(self, index):
-        index = index % self.length
+        index = index % self.length # 防止索引越界
         #---------------------------------------------------#
         #   训练时进行数据的随机增强
         #   验证时不进行数据的随机增强
@@ -48,6 +48,7 @@ class SSDDataset(Dataset):
         return np.random.rand()*(b-a) + a
 
     def get_random_data(self, annotation_line, input_shape, jitter=.3, hue=.1, sat=0.7, val=0.4, random=True):
+        # 颜色属性: {hue: 色调, sat: 饱和度, val: 亮度}
         line = annotation_line.split()
         #------------------------------#
         #   读取图像并转换成RGB图像
@@ -100,10 +101,12 @@ class SSDDataset(Dataset):
         #------------------------------------------#
         new_ar = iw/ih * self.rand(1-jitter,1+jitter) / self.rand(1-jitter,1+jitter)
         scale = self.rand(.25, 2)
-        if new_ar < 1:
+        if new_ar < 1: 
+            # 新宽高比 < 1，说明图被拉高
             nh = int(scale*h)
             nw = int(nh*new_ar)
         else:
+            # 新宽高比 >= 1，说明图被拉宽
             nw = int(scale*w)
             nh = int(nw/new_ar)
         image = image.resize((nw,nh), Image.BICUBIC)
@@ -123,7 +126,7 @@ class SSDDataset(Dataset):
         flip = self.rand()<.5
         if flip: image = image.transpose(Image.FLIP_LEFT_RIGHT)
 
-        image_data      = np.array(image, np.uint8)
+        image_data      = np.array(image, np.uint8) # PIL -> ndarray
         #---------------------------------#
         #   对图像进行色域变换
         #   计算色域变换的参数
@@ -195,7 +198,7 @@ class SSDDataset(Dataset):
         #   iou [self.num_anchors]
         #   encoded_box [self.num_anchors, 5]
         #---------------------------------------------#
-        iou = self.iou(box)
+        iou = self.iou(box) # 返回了所有anchors与该box的iou value
         encoded_box = np.zeros((self.num_anchors, 4 + return_iou))
         
         #---------------------------------------------#
@@ -266,7 +269,7 @@ class SSDDataset(Dataset):
         #   [num_true_box, num_anchors, 4 + 1]
         #   4是编码后的结果，1为iou
         #---------------------------------------------------#
-        encoded_boxes   = encoded_boxes.reshape(-1, self.num_anchors, 5)
+        encoded_boxes   = encoded_boxes.reshape(-1, self.num_anchors, 5) # 这里的 -1 实际上就是“真实框数量”。
         
         #---------------------------------------------------#
         #   [num_anchors]求取每一个先验框重合度最大的真实框

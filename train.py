@@ -40,6 +40,8 @@ warnings.filterwarnings("ignore")
    如果只是训练了几个Step是不会保存的，Epoch和Step的概念要捋清楚一下。
 '''
 if __name__ == "__main__":
+    pid = os.getpid()
+    print(f"pid:{pid}")
     #---------------------------------#
     #   Cuda    是否使用Cuda
     #           没有GPU可以设置成False
@@ -61,11 +63,11 @@ if __name__ == "__main__":
     #       设置            distributed = True
     #       在终端中输入    CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 train.py
     #---------------------------------------------------------------------#
-    distributed     = False
+    distributed     = True
     #---------------------------------------------------------------------#
     #   sync_bn     是否使用sync_bn，DDP模式多卡可用
     #---------------------------------------------------------------------#
-    sync_bn         = False
+    sync_bn         = True
     #---------------------------------------------------------------------#
     #   fp16        是否使用混合精度训练
     #               可减少约一半的显存、需要pytorch1.7.1以上
@@ -75,7 +77,8 @@ if __name__ == "__main__":
     #   classes_path    指向model_data下的txt，与自己训练的数据集相关 
     #                   训练前一定要修改classes_path，使其对应自己的数据集
     #---------------------------------------------------------------------#
-    classes_path    = 'model_data/voc_classes.txt'
+    dataset_name = "KITTI_8_clean" # KITTI_8_clean|KITTI_8
+    classes_path    =  f'datasets/{dataset_name}/classes.txt' # 'model_data/voc_classes.txt'
     #----------------------------------------------------------------------------------------------------------------------------#
     #   权值文件的下载请看README，可以通过网盘下载。模型的 预训练权重 对不同数据集是通用的，因为特征是通用的。
     #   模型的 预训练权重 比较重要的部分是 主干特征提取网络的权值部分，用于进行特征提取。
@@ -117,7 +120,8 @@ if __name__ == "__main__":
     #   一般调小浅层先验框的大小就行了！因为浅层负责小物体检测！
     #   比如anchors_size = [21, 45, 99, 153, 207, 261, 315]
     #------------------------------------------------------#
-    anchors_size    = [30, 60, 111, 162, 213, 264, 315]
+    # anchors_size    = [30, 60, 111, 162, 213, 264, 315]
+    anchors_size = [21, 45, 99, 153, 207, 261, 315]
 
     #----------------------------------------------------------------------------------------------------------------------------#
     #   训练分为两个阶段，分别是冻结阶段和解冻阶段。设置冻结阶段是为了满足机器性能不足的同学的训练需求。
@@ -214,7 +218,7 @@ if __name__ == "__main__":
     #------------------------------------------------------------------#
     #   save_dir        权值与日志文件保存的文件夹
     #------------------------------------------------------------------#
-    save_dir            = 'logs'
+    save_dir            = 'logs_3'
     #------------------------------------------------------------------#
     #   eval_flag       是否在训练时进行评估，评估对象为验证集
     #                   安装pycocotools库后，评估体验更佳。
@@ -238,20 +242,20 @@ if __name__ == "__main__":
     #   train_annotation_path   训练图片路径和标签
     #   val_annotation_path     验证图片路径和标签
     #------------------------------------------------------#
-    train_annotation_path   = '2007_train.txt'
-    val_annotation_path     = '2007_val.txt'
+    train_annotation_path   = f"datasets/{dataset_name}/train.txt" # '2007_train.txt'
+    val_annotation_path     = f"datasets/{dataset_name}/val.txt" # '2007_val.txt'
 
     seed_everything(seed)
     #------------------------------------------------------#
     #   设置用到的显卡
     #------------------------------------------------------#
-    ngpus_per_node  = torch.cuda.device_count()
+    ngpus_per_node  = torch.cuda.device_count() # 本机中gpu个数
     if distributed:
-        dist.init_process_group(backend="nccl")
-        local_rank  = int(os.environ["LOCAL_RANK"])
+        dist.init_process_group(backend="nccl") # 分布式后端使用nccl
+        local_rank  = int(os.environ["LOCAL_RANK"]) # 当前进程在本机上的GPU编号
         rank        = int(os.environ["RANK"])
-        device      = torch.device("cuda", local_rank)
-        if local_rank == 0:
+        device      = torch.device("cuda", local_rank) # 指定当前进程使用哪块GPU
+        if local_rank == 0: # 0号进程打印
             print(f"[{os.getpid()}] (rank = {rank}, local_rank = {local_rank}) training...")
             print("Gpu Device Count : ", ngpus_per_node)
     else:
@@ -335,33 +339,37 @@ if __name__ == "__main__":
     #   多卡同步Bn
     #----------------------------#
     if sync_bn and ngpus_per_node > 1 and distributed:
-        model_train = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model_train)
+        model_train = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model_train) # BN并行
     elif sync_bn:
         print("Sync_bn is not support in one gpu or not distributed.")
 
     if Cuda:
+        # 如果使用GPU
         if distributed:
+            # 如果准备数据并行
             #----------------------------#
             #   多卡平行运行
             #----------------------------#
-            model_train = model_train.cuda(local_rank)
+            # 多进程多卡
+            model_train = model_train.cuda(local_rank) # 模型放到该该进程对应的gpu上
             model_train = torch.nn.parallel.DistributedDataParallel(model_train, device_ids=[local_rank], find_unused_parameters=True)
         else:
-            model_train = torch.nn.DataParallel(model)
+            model_train = torch.nn.DataParallel(model) # 单进程多卡
             cudnn.benchmark = True
             model_train = model_train.cuda()
 
     #---------------------------#
     #   读取数据集对应的txt
     #---------------------------#
+    # 读取数据集原始数据信息
     with open(train_annotation_path, encoding='utf-8') as f:
         train_lines = f.readlines()
     with open(val_annotation_path, encoding='utf-8') as f:
         val_lines   = f.readlines()
-    num_train   = len(train_lines)
-    num_val     = len(val_lines)   
+    num_train   = len(train_lines) # 训练集个数
+    num_val     = len(val_lines) # 验证集个数
     
-    if local_rank == 0:
+    if local_rank == 0: # 0号进程
         show_config(
             classes_path = classes_path, model_path = model_path, input_shape = input_shape, \
             Init_Epoch = Init_Epoch, Freeze_Epoch = Freeze_Epoch, UnFreeze_Epoch = UnFreeze_Epoch, Freeze_batch_size = Freeze_batch_size, Unfreeze_batch_size = Unfreeze_batch_size, Freeze_Train = Freeze_Train, \
@@ -398,6 +406,7 @@ if __name__ == "__main__":
         #   冻结一定部分训练
         #------------------------------------#
         if Freeze_Train:
+            # 冻结 backbone 部分参数
             if backbone == "vgg":
                 for param in model.vgg[:28].parameters():
                     param.requires_grad = False
@@ -444,19 +453,21 @@ if __name__ == "__main__":
         if epoch_step == 0 or epoch_step_val == 0:
             raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
 
+        # 基于 数据集原始信息 构建训练数据集class
         train_dataset   = SSDDataset(train_lines, input_shape, anchors, batch_size, num_classes, train = True)
         val_dataset     = SSDDataset(val_lines, input_shape, anchors, batch_size, num_classes, train = False)
         
         if distributed:
+            # 多进程多卡
             train_sampler   = torch.utils.data.distributed.DistributedSampler(train_dataset, shuffle=True,)
             val_sampler     = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False,)
-            batch_size      = batch_size // ngpus_per_node
+            batch_size      = batch_size // ngpus_per_node # 你设定好的batchsize均分到多个gpu上
             shuffle         = False
         else:
             train_sampler   = None
             val_sampler     = None
             shuffle         = True
-
+        # 如果 DataLoader 已经传入了 sampler，就不能再同时使用 shuffle=True。
         gen             = DataLoader(train_dataset, shuffle = shuffle, batch_size = batch_size, num_workers = num_workers, pin_memory=True,
                                     drop_last=True, collate_fn=ssd_dataset_collate, sampler=train_sampler, 
                                     worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed))
@@ -481,8 +492,8 @@ if __name__ == "__main__":
             #   如果模型有冻结学习部分
             #   则解冻，并设置参数
             #---------------------------------------#
-            if epoch >= Freeze_Epoch and not UnFreeze_flag and Freeze_Train:
-                batch_size = Unfreeze_batch_size
+            if epoch >= Freeze_Epoch and not UnFreeze_flag and Freeze_Train: # epoch经过冻结epoch且还未解冻且采用冻结训练
+                batch_size = Unfreeze_batch_size # 改变解冻状态下的batchsize
 
                 #-------------------------------------------------------------------#
                 #   判断当前batch_size，自适应调整学习率
@@ -497,6 +508,7 @@ if __name__ == "__main__":
                 #---------------------------------------#
                 lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, UnFreeze_Epoch)
                 
+                # backbone解冻
                 if backbone == "vgg":
                     for param in model.vgg[:28].parameters():
                         param.requires_grad = True
@@ -507,8 +519,8 @@ if __name__ == "__main__":
                     for param in model.resnet.parameters():
                         param.requires_grad = True
                         
-                epoch_step      = num_train // batch_size
-                epoch_step_val  = num_val // batch_size
+                epoch_step      = num_train // batch_size # 训练集中每个epoch包含的steps
+                epoch_step_val  = num_val // batch_size # 验证集中每个epoch包含的steps
 
                 if epoch_step == 0 or epoch_step_val == 0:
                     raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
@@ -523,18 +535,19 @@ if __name__ == "__main__":
                                             drop_last=True, collate_fn=ssd_dataset_collate, sampler=val_sampler, 
                                             worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed))
 
-                UnFreeze_flag = True
+                UnFreeze_flag = True # 解冻了！
 
             if distributed:
-                train_sampler.set_epoch(epoch)
+                train_sampler.set_epoch(epoch) # 让 DistributedSampler 每个 epoch 使用不同的随机打乱顺序。
 
             set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
 
+            # train one epoch
             fit_one_epoch(model_train, model, criterion, loss_history, eval_callback, optimizer, epoch, 
                     epoch_step, epoch_step_val, gen, gen_val, UnFreeze_Epoch, Cuda, fp16, scaler, save_period, save_dir, local_rank)
                         
             if distributed:
                 dist.barrier()
-
+        # 所有epochs训练结束
         if local_rank == 0:
             loss_history.writer.close()

@@ -123,7 +123,7 @@ def get_mobilenet_output_length(height, width):
         feature_widths.append(width)
     return np.array(feature_heights)[-6:], np.array(feature_widths)[-6:]
 
-def get_anchors(input_shape = [300,300], anchors_size = [30, 60, 111, 162, 213, 264, 315], backbone = 'vgg'):
+def get_anchors(input_shape = [300,300], anchors_size = [21, 45, 99, 153, 207, 261, 315], backbone = 'vgg'):
     if backbone == 'vgg' or backbone == 'resnet50':
         feature_heights, feature_widths = get_vgg_output_length(input_shape[0], input_shape[1])
         aspect_ratios = [[1, 2], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2], [1, 2]]
@@ -265,7 +265,7 @@ if __name__ == '__main__':
     # 输入图片大小为300, 300
     input_shape     = [300, 300] 
     # 指定先验框的大小，即宽高
-    anchors_size    = [30, 60, 111, 162, 213, 264, 315]
+    anchors_size    = [21, 45, 99, 153, 207, 261, 315]
     # feature_heights   [38, 19, 10, 5, 3, 1]
     # feature_widths    [38, 19, 10, 5, 3, 1]
     feature_heights, feature_widths = get_vgg_output_length(input_shape[0], input_shape[1])

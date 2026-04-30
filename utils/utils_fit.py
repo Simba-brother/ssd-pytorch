@@ -1,18 +1,20 @@
 import os
-
+import sys
 import torch
 from tqdm import tqdm
+
 
 from utils.utils import get_lr
 
 
 def fit_one_epoch(model_train, model, ssd_loss, loss_history, eval_callback, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, cuda, fp16, scaler, save_period, save_dir, local_rank=0):
+    use_tqdm = sys.stderr.isatty()
     total_loss  = 0
     val_loss    = 0 
 
     if local_rank == 0:
         print('Start Train')
-        pbar = tqdm(total=epoch_step,desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3)
+        pbar = tqdm(total=epoch_step,desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3,disable=not use_tqdm,file=sys.stderr)
     model_train.train()
     for iteration, batch in enumerate(gen):
         if iteration >= epoch_step:
@@ -20,7 +22,7 @@ def fit_one_epoch(model_train, model, ssd_loss, loss_history, eval_callback, opt
         images, targets = batch[0], batch[1]
         with torch.no_grad():
             if cuda:
-                images  = images.cuda(local_rank)
+                images  = images.cuda(local_rank) # 训练数据集放到进程对应的gpu上
                 targets = targets.cuda(local_rank)
         if not fp16:
             #----------------------#
@@ -42,7 +44,7 @@ def fit_one_epoch(model_train, model, ssd_loss, loss_history, eval_callback, opt
             optimizer.step()
         else:
             from torch.cuda.amp import autocast
-            with autocast():
+            with autocast("cuda"):
                 #----------------------#
                 #   前向传播
                 #----------------------#
@@ -74,7 +76,7 @@ def fit_one_epoch(model_train, model, ssd_loss, loss_history, eval_callback, opt
         pbar.close()
         print('Finish Train')
         print('Start Validation')
-        pbar = tqdm(total=epoch_step_val, desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3)
+        pbar = tqdm(total=epoch_step_val, desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3,disable=not use_tqdm,file=sys.stderr)
 
     model_train.eval()
     for iteration, batch in enumerate(gen_val):
