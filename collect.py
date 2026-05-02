@@ -12,7 +12,7 @@ from nets.ssd import SSD300
 from utils.utils import (cvtColor, get_classes, preprocess_input, resize_image)
 from utils.anchors import get_anchors
 from utils.utils_bbox import BBoxUtility # bg class 对应处理了
-from small_utils import format_timestamp
+from small_utils import format_timestamp,get_cost_time
 from pprint import pprint
 
 
@@ -152,7 +152,8 @@ def main():
         print(f"数据保存在:{save_json_path}")
         epoch_end_time = time.time()
         epoch_cost_time = epoch_end_time - epoch_start_time
-        print(f"epoch耗时:{format_timestamp(epoch_cost_time)}")
+        cost_time = get_cost_time(epoch_cost_time)
+        print(f"epoch耗时:{cost_time}")
 
 
 if __name__ == '__main__':
@@ -185,5 +186,5 @@ if __name__ == '__main__':
     main()
     end_time = time.time()
     print(f"实验结束时间:{format_timestamp(end_time)}")
-    cost_time = end_time - start_time()
-    print(f"实验消耗时间:{format_timestamp(cost_time)}")
+    cost_time = get_cost_time(end_time-start_time)
+    print(f"实验消耗时间:{cost_time}")
