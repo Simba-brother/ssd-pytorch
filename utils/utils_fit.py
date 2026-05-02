@@ -111,7 +111,7 @@ def fit_one_epoch(model_train, model, ssd_loss, loss_history, eval_callback, opt
         #-----------------------------------------------#
         if (epoch + 1) % save_period == 0 or epoch + 1 == Epoch:
             # 定期间隔(save_period)和最后一个epoch都会保存模型权重
-            torch.save(model.state_dict(), os.path.join(save_dir, "ep%03d-loss%.3f-val_loss%.3f.pth" % (epoch + 1, total_loss / epoch_step, val_loss / epoch_step_val)))
+            torch.save(model.state_dict(), os.path.join(save_dir, "ep%03d.pth" % (epoch + 1)))
 
         if len(loss_history.val_loss) <= 1 or (val_loss / epoch_step_val) <= min(loss_history.val_loss):
             print('Save best model to best_epoch_weights.pth')

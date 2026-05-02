@@ -91,7 +91,7 @@ class BBoxUtility(object):
             #--------------------------------#
             decode_bbox = self.decode_boxes(mbox_loc[i], anchors, variances)
 
-            for c in range(1, self.num_classes):
+            for c in range(1, self.num_classes): # bg class 对应关键
                 #--------------------------------#
                 #   取出属于该类的所有框的置信度
                 #   判断是否大于门限
