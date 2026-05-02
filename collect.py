@@ -11,13 +11,13 @@ from PIL import Image
 from nets.ssd import SSD300
 from utils.utils import (cvtColor, get_classes, preprocess_input, resize_image)
 from utils.anchors import get_anchors
-from utils.utils_bbox import BBoxUtility
+from utils.utils_bbox import BBoxUtility # bg class 对应处理了
 from small_utils import format_timestamp
 from pprint import pprint
 
 
-def get_model_struct(num_classes):
-    num_classes = num_classes + 1
+def build_model(num_classes):
+    num_classes = num_classes + 1 # bg class + 1在build模型时
     model = SSD300(num_classes, backbone)
     return model
 
@@ -104,15 +104,15 @@ def result_to_dict(image_paths:list[str], result_list:list)->dict:
         result_dict[image_name] = {
             "predicted_bboxs":[]
         }
-        for obj_i in range(result.shape):
-            ymin,ymax,xmin,xmax = result[obj_i][0:4]
+        for obj_i in range(result.shape[0]):
+            ymin,ymax,xmin,xmax = result[obj_i][0:4].tolist()
             predicted_cls = result[obj_i][4]
             conf = result[obj_i][5]
             predicted_bbox = {
                 "predicted_box_id":predicted_bbox_id,
                 "img_name":image_name,
                 "predicted_cls":int(predicted_cls),
-                "conf":conf,
+                "conf":conf.item(),
                 "bbox":[xmin,ymin,xmax,ymax]
             }
             result_dict[image_name]["predicted_bboxs"].append(predicted_bbox)
@@ -120,20 +120,21 @@ def result_to_dict(image_paths:list[str], result_list:list)->dict:
 
 def main():
     # 获得模型
-    print("获得模型结构...")
-    model = get_model_struct(num_classes)
     print("获类别信息...")
-    class_names, num_classes  = get_classes(classes_path)
+    class_names, num_classes  = get_classes(classes_path) # 不含bg class
+    print("获得模型结构...")
+    model = build_model(num_classes)
     # 获得数据集
     print("获得数据集...")
     images, image_paths = get_dataset(dataset_dir)
     for epoch in range(epochs):
         epoch_start_time = time.time()
-        print(f"===Epoch:{epoch}/{epochs}===")
+        print(f"===Epoch:{epoch+1}/{epochs}===")
          # 装载模型权重
         print("load weight...")
-        epoch_str = str(epoch).zfill(3)
+        epoch_str = str(epoch+1).zfill(3)
         weight_path = os.path.join(f"/home/mml/workspace/ssd-pytorch/logs_3/ep{epoch_str}.pth")
+        print(f"weight_path:{weight_path}")
         model.load_state_dict(torch.load(weight_path, map_location=device, weights_only=True))
         model = model.eval()
         # 开始推理
@@ -186,4 +187,3 @@ if __name__ == '__main__':
     print(f"实验结束时间:{format_timestamp(end_time)}")
     cost_time = end_time - start_time()
     print(f"实验消耗时间:{format_timestamp(cost_time)}")
-    
