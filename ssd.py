@@ -33,7 +33,7 @@ class SSD(object):
         #   验证集损失较低不代表mAP较高，仅代表该权值在验证集上泛化性能较好。
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         #--------------------------------------------------------------------------#
-        "model_path"       : 'logs_2/best_epoch_weights.pth', # : 'model_data/ssd_weights.pth',
+        "model_path"       : 'logs_3/best_epoch_weights.pth', # : 'model_data/ssd_weights.pth',
         "classes_path"     : 'datasets/KITTI_8_clean/classes.txt', # : 'model_data/voc_classes.txt',
         #---------------------------------------------------------------------#
         #   用于预测的图像大小，和train时使用同一个即可
@@ -55,7 +55,7 @@ class SSD(object):
         #---------------------------------------------------------------------#
         #   用于指定先验框的大小
         #---------------------------------------------------------------------#
-        'anchors_size'      : [21, 45, 99, 153, 207, 261, 315],
+        'anchors_size'      : [30, 60, 111, 162, 213, 264, 315],
         #---------------------------------------------------------------------#
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize，
         #   在多次测试后，发现关闭letterbox_image直接resize的效果更好
