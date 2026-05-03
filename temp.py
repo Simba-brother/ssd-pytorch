@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 def _rename():
     logs_dir = "logs_3"
@@ -13,4 +14,23 @@ def _rename():
             dst = os.path.join(logs_dir, new_name)
             os.rename(src, dst)
             print(f"{filename} -> {new_name}")
+
+def _rewrite_json():
+    for i in range(200):
+        json_path = f"/data/mml/data_debugging_data/collection_indicator_bbox_level/KITTI_8/SSD/predicted_bbox/epoch_{i}_predicted_bboxs.json"
+        with open(json_path, "r") as f:
+             _json = json.load(f)
+        for imagename in list(_json.keys()):
+            predicted_bboxs = _json[imagename]["predicted_bboxs"]
+            for predicted_bbox in predicted_bboxs:
+                bbox = predicted_bbox["bbox"]
+                bbox[0],bbox[3] = bbox[3], bbox[0]
+        save_path = f"/data/mml/data_debugging_data/collection_indicator_bbox_level/KITTI_8/SSD/predicted_bbox_new/epoch_{i}_predicted_bboxs.json"
+        with open(save_path, 'w', encoding='utf-8') as f:
+            json.dump(_json, f, indent=4, ensure_ascii=False)
+    print("END")
+
+if __name__ == "__main__":
+    _rewrite_json()
+
 

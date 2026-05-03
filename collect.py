@@ -105,7 +105,8 @@ def result_to_dict(image_paths:list[str], result_list:list)->dict:
             "predicted_bboxs":[]
         }
         for obj_i in range(result.shape[0]):
-            ymin,ymax,xmin,xmax = result[obj_i][0:4].tolist()
+            
+            y1,x1,y2,x2 = result[obj_i][0:4].tolist()
             predicted_cls = result[obj_i][4]
             conf = result[obj_i][5]
             predicted_bbox = {
@@ -113,7 +114,7 @@ def result_to_dict(image_paths:list[str], result_list:list)->dict:
                 "img_name":image_name,
                 "predicted_cls":int(predicted_cls),
                 "conf":conf.item(),
-                "bbox":[xmin,ymin,xmax,ymax]
+                "bbox":[x1,y1,x2,y2]
             }
             result_dict[image_name]["predicted_bboxs"].append(predicted_bbox)
     return result_dict
