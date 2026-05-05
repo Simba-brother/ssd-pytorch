@@ -28,8 +28,8 @@ class Detector(object):
                  input_shape:list=[300,300],
                  anchors_size:list=[30, 60, 111, 162, 213, 264, 315],
                  backbone:str="vgg",
-                 nms_iou:float=0.45,
-                 confidence:float=0.5
+                 nms_iou:float=0.65, # 0.45|0.65(yolov7)
+                 confidence:float=0.25 # 0.5|0.25(yolov7)
                  ):
          model = torch.nn.DataParallel(model)
          self.model = model.cuda()
@@ -116,6 +116,7 @@ def result_to_dict(image_paths:list[str], result_list:list)->dict:
                 "conf":conf.item(),
                 "bbox":[x1,y1,x2,y2]
             }
+            predicted_bbox_id += 1
             result_dict[image_name]["predicted_bboxs"].append(predicted_bbox)
     return result_dict
 
@@ -168,7 +169,7 @@ if __name__ == '__main__':
     device = torch.device(f'cuda:{gpu_id}')
     dataset_dir = f"datasets/{dataset_name}"
     classes_path = f"{dataset_dir}/classes.txt"
-    save_dir = os.path.join(exp_data_root_dir,"collection_indicator_bbox_level", dataset_name, model_name, "predicted_bbox")
+    save_dir = os.path.join(exp_data_root_dir,"collection_bbox_level", dataset_name, model_name, "predicted_bbox")
     os.makedirs(save_dir,exist_ok=True)
 
     # 打印实验基本信息

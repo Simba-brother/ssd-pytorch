@@ -33,8 +33,8 @@ class SSD(object):
         #   验证集损失较低不代表mAP较高，仅代表该权值在验证集上泛化性能较好。
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         #--------------------------------------------------------------------------#
-        "model_path"       : 'logs_3/best_epoch_weights.pth', # : 'model_data/ssd_weights.pth',
-        "classes_path"     : 'datasets/KITTI_8_clean/classes.txt', # : 'model_data/voc_classes.txt',
+        "model_path"       : 'logs_1/best_epoch_weights.pth', # : 'model_data/ssd_weights.pth',
+        "classes_path"     : 'datasets/KITTI_8/classes.txt', # : 'model_data/voc_classes.txt',
         #---------------------------------------------------------------------#
         #   用于预测的图像大小，和train时使用同一个即可
         #---------------------------------------------------------------------#
