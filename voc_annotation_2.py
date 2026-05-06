@@ -7,8 +7,8 @@ import numpy as np
 from utils.utils import get_classes
 
 stage = 2 # 0,1,2
-dataset_name = "KITTI_8_clean" # KITTI_8|KITTI_8_clean
-
+dataset_name = "VisDrone_clean" # KITTI_8|KITTI_8_clean|VisDrone_clean
+img_ext = "jpg"
 classes_path        = f'datasets/{dataset_name}/classes.txt'
 trainval_percent    = 0.9 # train:val
 
@@ -80,7 +80,6 @@ if __name__ == "__main__":
         print("Generate txt in ImageSets done.")
     
     if stage == 0 or stage == 2:
-
         print("Generate train.txt and val.txt for train.")
         tvt_index = 0
         # 遍历 tvt:[train,val,test]
@@ -88,7 +87,7 @@ if __name__ == "__main__":
             image_ids = open(os.path.join(dataset_dir, f'ImageSets/Main/{tvt}.txt'), encoding='utf-8').read().strip().split()
             list_file = open(f'datasets/{dataset_name}/{tvt}.txt', 'w', encoding='utf-8')
             for image_id in image_ids:
-                list_file.write(f'{os.path.abspath(dataset_dir)}/JPEGImages/{image_id}.png')
+                list_file.write(f'{os.path.abspath(dataset_dir)}/JPEGImages/{image_id}.{img_ext}')
                 convert_annotation(image_id, list_file)
                 list_file.write('\n') # 每张image换一行
             photo_nums[tvt_index] = len(image_ids)
